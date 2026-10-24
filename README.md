@@ -1,12 +1,14 @@
 # Energy Data API
 
+[![CI](https://github.com/Rhythm02-byte/energy-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Rhythm02-byte/energy-api/actions/workflows/ci.yml)
+
 A REST API that receives and serves energy-meter readings from smart-home devices.
 
 ## Status
 
 Slice 3: health check, create and list readings stored in PostgreSQL, bearer-token authentication, validation tests.
 
-Slice 4: Docker image and Docker Compose with PostgreSQL. Planned next: GitHub Actions CI.
+Slice 4: Docker image and Docker Compose with PostgreSQL. GitHub Actions CI runs the tests and builds the image on every push.
 
 ## Set up PostgreSQL
 
