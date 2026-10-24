@@ -7,6 +7,7 @@ import psycopg
 from fastapi import Depends, FastAPI, status
 from pydantic import BaseModel, Field
 
+from app.auth import require_token
 from app.db import SCHEMA, connect
 
 
@@ -41,7 +42,12 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.post("/readings", status_code=status.HTTP_201_CREATED, response_model=Reading)
+@app.post(
+    "/readings",
+    status_code=status.HTTP_201_CREATED,
+    response_model=Reading,
+    dependencies=[Depends(require_token)],
+)
 def create_reading(payload: ReadingIn, conn: psycopg.Connection = Depends(get_conn)) -> Reading:
     conn.execute(
         "INSERT INTO readings (device_id, kwh, recorded_at) VALUES (%s, %s, %s)",
@@ -51,7 +57,7 @@ def create_reading(payload: ReadingIn, conn: psycopg.Connection = Depends(get_co
     return Reading(**payload.model_dump())
 
 
-@app.get("/readings", response_model=list[Reading])
+@app.get("/readings", response_model=list[Reading], dependencies=[Depends(require_token)])
 def list_readings(conn: psycopg.Connection = Depends(get_conn)) -> list[Reading]:
     rows = conn.execute(
         "SELECT device_id, kwh, recorded_at FROM readings ORDER BY id"

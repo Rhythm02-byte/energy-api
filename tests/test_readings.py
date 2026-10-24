@@ -2,9 +2,10 @@ import psycopg
 from fastapi.testclient import TestClient
 
 from app.main import app
-from tests.conftest import TEST_DATABASE_URL
+from tests.conftest import TEST_API_TOKEN, TEST_DATABASE_URL
 
-client = TestClient(app)
+AUTH_HEADERS = {"Authorization": f"Bearer {TEST_API_TOKEN}"}
+client = TestClient(app, headers=AUTH_HEADERS)
 
 
 def test_health_check_returns_ok():
@@ -51,7 +52,7 @@ def test_list_readings_survives_a_new_app_client():
     # A fresh client has no in-memory state; the rows must come from Postgres.
     client.post("/readings", json={"device_id": "meter-1", "kwh": 1.0, "timestamp": "2026-10-24T10:00:00Z"})
 
-    response = TestClient(app).get("/readings")
+    response = TestClient(app, headers=AUTH_HEADERS).get("/readings")
 
     assert [r["device_id"] for r in response.json()] == ["meter-1"]
 

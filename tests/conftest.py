@@ -6,6 +6,12 @@ import pytest
 from app.db import SCHEMA
 
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "postgresql://localhost/energy_test")
+TEST_API_TOKEN = "test-token"
+
+
+@pytest.fixture(autouse=True)
+def api_token(monkeypatch):
+    monkeypatch.setenv("API_TOKEN", TEST_API_TOKEN)
 
 
 @pytest.fixture(autouse=True)
