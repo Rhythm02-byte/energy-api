@@ -6,7 +6,7 @@ A REST API that receives and serves energy-meter readings from smart-home device
 
 Slice 3: health check, create and list readings stored in PostgreSQL, bearer-token authentication, validation tests.
 
-Planned next: Docker run, GitHub Actions CI.
+Slice 4: Docker image and Docker Compose with PostgreSQL. Planned next: GitHub Actions CI.
 
 ## Set up PostgreSQL
 
@@ -19,6 +19,17 @@ createdb energy_test
 
 The app reads `DATABASE_URL` (default `postgresql://localhost/energy_dev`).
 Tests read `TEST_DATABASE_URL` (default `postgresql://localhost/energy_test`) and empty the table before each test, so never point it at real data.
+
+## Run with Docker
+
+Starts PostgreSQL and the API together:
+
+```bash
+API_TOKEN=change-me docker compose up --build
+```
+
+The API is at http://127.0.0.1:8000 and the database data persists in the `pgdata` volume.
+Stop with `docker compose down`, or `docker compose down -v` to also delete the data.
 
 ## Authentication
 

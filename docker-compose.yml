@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: energy
+      POSTGRES_PASSWORD: energy
+      POSTGRES_DB: energy
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U energy -d energy"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://energy:energy@db:5432/energy
+      API_TOKEN: ${API_TOKEN:?Set API_TOKEN in your shell before running compose}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
