@@ -1,14 +1,18 @@
 from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 from typing import Annotated
 
 import psycopg
 from fastapi import Depends, FastAPI, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from app.auth import require_token
 from app.db import SCHEMA, connect
+
+STATIC_DIR = Path(__file__).parent / "static"
 
 
 @asynccontextmanager
@@ -35,6 +39,11 @@ class Reading(ReadingIn):
 def get_conn() -> Iterator[psycopg.Connection]:
     with connect() as conn:
         yield conn
+
+
+@app.get("/", include_in_schema=False)
+def dashboard() -> FileResponse:
+    return FileResponse(STATIC_DIR / "index.html")
 
 
 @app.get("/health")
