@@ -8,7 +8,7 @@ A REST API that receives and serves energy-meter readings from smart-home device
 
 Slice 3: health check, create and list readings stored in PostgreSQL, bearer-token authentication, validation tests.
 
-Slice 4: Docker image and Docker Compose with PostgreSQL. GitHub Actions CI runs the tests and builds the image on every push.
+Slice 4: Docker image and Docker Compose with PostgreSQL. Slice 5: live dashboard at / (dark mode, Tailwind, Chart.js). GitHub Actions CI runs the tests and builds the image on every push.
 
 ## Set up PostgreSQL
 
@@ -30,7 +30,7 @@ Starts PostgreSQL and the API together:
 API_TOKEN=change-me docker compose up --build
 ```
 
-The API is at http://127.0.0.1:8000 and the database data persists in the `pgdata` volume.
+The API is at http://127.0.0.1:8000, with the dashboard at the same address. The database data persists in the `pgdata` volume.
 Stop with `docker compose down`, or `docker compose down -v` to also delete the data.
 
 ## Authentication
@@ -62,6 +62,7 @@ Interactive docs: http://127.0.0.1:8000/docs
 
 | Method | Path | Description |
 | --- | --- | --- |
+| GET | `/` | Live dashboard (HTML). Enter your token in the page |
 | GET | `/health` | Health check |
 | POST | `/readings` | Store a reading (`device_id`, `kwh` ≥ 0, `timestamp`). Token required |
 | GET | `/readings` | List all stored readings. Token required |
