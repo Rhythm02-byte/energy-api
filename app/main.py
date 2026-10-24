@@ -1,13 +1,24 @@
+from collections.abc import AsyncIterator, Iterator
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import FastAPI, status
+import psycopg
+from fastapi import Depends, FastAPI, status
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="Energy Data API")
+from app.db import SCHEMA, connect
 
-# In-memory storage for now. Replaced by PostgreSQL in the next slice.
-readings: list["Reading"] = []
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    # Create the table on startup if it does not exist yet.
+    with connect() as conn:
+        conn.execute(SCHEMA)
+    yield
+
+
+app = FastAPI(title="Energy Data API", lifespan=lifespan)
 
 
 class ReadingIn(BaseModel):
@@ -20,18 +31,29 @@ class Reading(ReadingIn):
     pass
 
 
+def get_conn() -> Iterator[psycopg.Connection]:
+    with connect() as conn:
+        yield conn
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
 @app.post("/readings", status_code=status.HTTP_201_CREATED, response_model=Reading)
-def create_reading(payload: ReadingIn) -> Reading:
-    reading = Reading(**payload.model_dump())
-    readings.append(reading)
-    return reading
+def create_reading(payload: ReadingIn, conn: psycopg.Connection = Depends(get_conn)) -> Reading:
+    conn.execute(
+        "INSERT INTO readings (device_id, kwh, recorded_at) VALUES (%s, %s, %s)",
+        (payload.device_id, payload.kwh, payload.timestamp),
+    )
+    conn.commit()
+    return Reading(**payload.model_dump())
 
 
 @app.get("/readings", response_model=list[Reading])
-def list_readings() -> list[Reading]:
-    return readings
+def list_readings(conn: psycopg.Connection = Depends(get_conn)) -> list[Reading]:
+    rows = conn.execute(
+        "SELECT device_id, kwh, recorded_at FROM readings ORDER BY id"
+    ).fetchall()
+    return [Reading(device_id=d, kwh=k, timestamp=t) for d, k, t in rows]
