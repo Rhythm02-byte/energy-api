@@ -12,7 +12,7 @@ def test_health_check_returns_ok():
     response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {"status": "ok", "database": "ok"}
 
 
 def test_create_reading_returns_201_and_the_stored_reading():
