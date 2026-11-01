@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Annotated
 
 import psycopg
-from fastapi import Depends, FastAPI, status
+from fastapi import Depends, FastAPI, Response, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
@@ -47,8 +47,15 @@ def dashboard() -> FileResponse:
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+def health(response: Response) -> dict[str, str]:
+    # Liveness and readiness in one check: the API is only healthy if it can reach its database.
+    try:
+        with connect() as conn:
+            conn.execute("SELECT 1")
+    except psycopg.OperationalError:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return {"status": "unavailable", "database": "unreachable"}
+    return {"status": "ok", "database": "ok"}
 
 
 @app.post(
