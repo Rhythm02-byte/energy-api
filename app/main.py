@@ -5,10 +5,11 @@ from pathlib import Path
 from typing import Annotated
 
 import psycopg
-from fastapi import Depends, FastAPI, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Response, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
+from app import grid
 from app.auth import require_token
 from app.db import SCHEMA, connect
 
@@ -56,6 +57,15 @@ def health(response: Response) -> dict[str, str]:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         return {"status": "unavailable", "database": "unreachable"}
     return {"status": "ok", "database": "ok"}
+
+
+@app.get("/grid")
+def live_grid() -> dict:
+    # Public data, so no token. Upstream failures become a 502 instead of a crash.
+    try:
+        return grid.current_grid()
+    except Exception as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Energy-Charts is unreachable right now.") from exc
 
 
 @app.post(

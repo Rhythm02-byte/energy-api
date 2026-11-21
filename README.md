@@ -36,7 +36,7 @@ Stop with `docker compose down`, or `docker compose down -v` to also delete the 
 ## Authentication
 
 The readings endpoints need `Authorization: Bearer <token>`. The server reads the token from `API_TOKEN`. If `API_TOKEN` is not set, every readings request is refused.
-`/health` stays open.
+`/health` and `/grid` stay open.
 
 Tests set their own token, so you don't need one to run them.
 
@@ -64,6 +64,7 @@ Interactive docs: http://127.0.0.1:8000/docs
 | --- | --- | --- |
 | GET | `/` | Live dashboard (HTML). Enter your token in the page |
 | GET | `/health` | Health check |
+| GET | `/grid` | Germany's live power mix from [Energy-Charts](https://api.energy-charts.info/) (Fraunhofer ISE): renewable share, demand, and generation by source. Public API, no key; cached for 5 minutes |
 | POST | `/readings` | Store a reading (`device_id`, `kwh` ≥ 0, `timestamp`). Token required |
 | GET | `/readings` | List all stored readings. Token required |
 

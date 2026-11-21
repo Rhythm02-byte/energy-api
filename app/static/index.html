@@ -13,7 +13,7 @@
     <header class="flex flex-col gap-6 border-b border-slate-800 pb-8 sm:flex-row sm:items-end sm:justify-between">
       <div class="max-w-md">
         <h1 class="text-2xl font-semibold tracking-tight">Energy Dashboard</h1>
-        <p class="mt-2 text-sm text-slate-400">Log kWh readings from your smart meters and see how much each device uses. Refreshes every 5 seconds.</p>
+        <p class="mt-2 text-sm text-slate-400">See where Germany's electricity is coming from right now, and log kWh readings from your own meters.</p>
       </div>
       <div class="flex flex-col gap-2 sm:items-end">
         <form id="token-form" class="flex items-center gap-2">
@@ -30,7 +30,26 @@
       </div>
     </header>
 
-    <section class="mt-8 flex flex-wrap items-end gap-x-12 gap-y-6">
+    <section class="mt-8 rounded-lg border border-slate-800 p-6">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 class="text-base font-semibold">Germany's power grid right now</h2>
+        <p id="grid-time" class="text-sm text-slate-400">Loading…</p>
+      </div>
+      <p class="mt-1 text-sm text-slate-400">Live public data from Energy-Charts (Fraunhofer ISE). Works without a token.</p>
+      <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
+        <div>
+          <p class="text-sm text-slate-400">From renewables</p>
+          <p class="mt-1 font-semibold tabular-nums"><span id="grid-share" class="text-3xl">–</span><span class="text-xl text-slate-400">%</span></p>
+          <p class="mt-4 text-sm text-slate-400">Demand</p>
+          <p class="mt-1 font-semibold tabular-nums"><span id="grid-load" class="text-xl">–</span> <span class="text-slate-400">GW</span></p>
+        </div>
+        <ul id="grid-sources" class="space-y-3 sm:col-span-2"></ul>
+      </div>
+    </section>
+
+    <h2 class="mt-12 text-base font-semibold">Your meter readings</h2>
+    <p class="mt-1 text-sm text-slate-400">Readings you add with the form below. Needs your API token.</p>
+    <section class="mt-6 flex flex-wrap items-end gap-x-12 gap-y-6">
       <div>
         <p class="text-sm text-slate-400">Total energy</p>
         <p class="mt-1 font-semibold tracking-tight tabular-nums">
@@ -105,6 +124,9 @@
 const TOKEN_KEY = "energy-api-token";
 const POLL_MS = 5000;
 const COLORS = ["#38bdf8", "#f472b6", "#fbbf24", "#cbd5e1", "#f87171"];
+
+const GRID_POLL_MS = 5 * 60 * 1000;
+const RENEWABLE = new Set(["Solar", "Wind", "Biomass", "Hydro"]);
 
 const $ = (id) => document.getElementById(id);
 let timer = null;
@@ -266,6 +288,42 @@ function stopPolling() {
   timer = null;
 }
 
+async function refreshGrid() {
+  try {
+    const res = await fetch("/grid");
+    if (!res.ok) throw new Error("grid unavailable");
+    const g = await res.json();
+    $("grid-share").textContent = Math.round(g.renewable_share);
+    $("grid-load").textContent = (g.load_mw / 1000).toFixed(1);
+    $("grid-time").textContent = `As of ${new Date(g.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+
+    const max = Math.max(...Object.values(g.sources_mw));
+    const list = $("grid-sources");
+    list.replaceChildren();
+    for (const [name, mw] of Object.entries(g.sources_mw)) {
+      const li = document.createElement("li");
+      li.className = "flex items-center gap-3 text-sm";
+      const label = document.createElement("span");
+      label.className = "w-20 shrink-0 text-slate-300";
+      label.textContent = name;
+      const track = document.createElement("div");
+      track.className = "h-2 flex-1 rounded-sm bg-slate-800";
+      const bar = document.createElement("div");
+      // Renewables light, everything else dark: the split reads without extra colors.
+      bar.className = `h-2 rounded-sm ${RENEWABLE.has(name) ? "bg-slate-200" : "bg-slate-600"}`;
+      bar.style.width = `${(mw / max) * 100}%`;
+      track.appendChild(bar);
+      const value = document.createElement("span");
+      value.className = "w-16 shrink-0 text-right tabular-nums text-slate-400";
+      value.textContent = `${(mw / 1000).toFixed(1)} GW`;
+      li.append(label, track, value);
+      list.appendChild(li);
+    }
+  } catch {
+    $("grid-time").textContent = "Live grid data unavailable";
+  }
+}
+
 function defaultTimestamp() {
   // datetime-local wants local time without a timezone suffix.
   const now = new Date();
@@ -315,6 +373,8 @@ $("reading-form").addEventListener("submit", async (e) => {
 });
 
 $("timestamp").value = defaultTimestamp();
+refreshGrid();
+setInterval(refreshGrid, GRID_POLL_MS);
 if (getToken()) startPolling(); else setStatus("Enter your API token", "warn");
 </script>
 </body>
